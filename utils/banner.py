@@ -1,0 +1,1 @@
+"""Application startup banner component."""

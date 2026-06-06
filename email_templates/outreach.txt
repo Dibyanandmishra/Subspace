@@ -1,0 +1,14 @@
+Subject: Quick question for {first_name} at {company}
+
+Hi {first_name},
+
+I came across {company} while researching teams doing interesting work in the space — looks like you're building something worth paying attention to.
+
+As {title}, I imagine one of the recurring headaches is generating qualified pipeline without burning your team's time on manual research and cold lists. We've been working on exactly that: a system that takes a single seed domain, finds similar companies, surfaces the right decision-makers, verifies their contact details, and sends personalized outreach automatically — no SDR required for the prospecting layer.
+
+The teams we've run this with typically have their first batch of warm conversations booked within a day of turning it on.
+
+Would {name} be open to a 15-minute call this week? I can show you a live run against a domain of your choosing — no slides, just the actual product working.
+
+Best,
+{sender_name}
