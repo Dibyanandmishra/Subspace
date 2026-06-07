@@ -1,17 +1,15 @@
 """Prospeo API wrapper — decision-maker contact search."""
 
-import logging
-
 import httpx
 
 from models.schemas import Contact, ProspeoContactRaw, ProspeoResponseData
 from models.settings import settings
 from utils.retry import ProspeoAuthError, ProspeoCreditsError, make_retry_decorator
+from utils.stage_display import log_sub
 
 _BASE_URL = "https://api.prospeo.io"
 _ENDPOINT = "/domain-search"
 
-_logger = logging.getLogger(__name__)
 _LOW_CREDIT_THRESHOLD = 10
 
 
@@ -66,9 +64,7 @@ def get_contacts_for_domain(domain: str) -> list[Contact]:
     # Warn when credits are running low (best-effort — field may not always be present)
     credits_remaining = inner.get("credits_remaining")
     if credits_remaining is not None and credits_remaining < _LOW_CREDIT_THRESHOLD:
-        _logger.warning(
-            "Prospeo credits low: %d remaining. Top up soon.", credits_remaining
-        )
+        log_sub(f"⚠ Prospeo credits low: {credits_remaining} remaining", style="yellow")
 
     return contacts
 

@@ -1,0 +1,14 @@
+Subject: Outreach automation for {company} — introduction from {sender_name}
+
+Dear {first_name},
+
+I am writing to introduce a solution that may be relevant to your work as {title} at {company}.
+
+Our platform automates the cold-outreach pipeline end-to-end: starting from a single seed domain, it identifies lookalike companies, surfaces qualified decision-makers, verifies contact information, and delivers personalized outreach — without requiring manual SDR effort at the prospecting stage.
+
+Organizations that have adopted this approach have reported a measurable reduction in time-to-first-meeting, with qualified conversations booked within the first 24 hours of deployment.
+
+I would welcome the opportunity to schedule a brief call with {name} at your earliest convenience to demonstrate how this might apply to {company}'s current go-to-market motion.
+
+Kind regards,
+{sender_name}

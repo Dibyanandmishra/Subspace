@@ -1,20 +1,32 @@
 """Subspace automated cold-outreach pipeline CLI entry point."""
 
+from typing import Optional
+
 import typer
 
 app = typer.Typer(add_completion=False)
+
+TONE_TEMPLATES = {
+    "friendly": "email_templates/outreach_friendly.txt",
+    "formal":   "email_templates/outreach_formal.txt",
+    "direct":   "email_templates/outreach_direct.txt",
+}
 
 
 @app.command()
 def main(
     domain: str = typer.Option(..., "--domain", help="Seed company domain (e.g. stripe.com)"),
     verbose: bool = typer.Option(False, "--verbose", help="Show debug API payloads in logs"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Run Stages 1–3 only. Do not send emails."),
+    export_csv: bool = typer.Option(False, "--export-csv", help="Export verified contacts to CSV after run."),
+    min_size: Optional[int] = typer.Option(None, "--min-size", help="Minimum employee count filter."),
+    max_size: Optional[int] = typer.Option(None, "--max-size", help="Maximum employee count filter."),
+    tone: str = typer.Option("friendly", "--tone", help="Email tone: friendly | formal | direct"),
 ) -> None:
     """Automated cold-outreach pipeline: one seed domain in, personalized emails out."""
 
     # Lazy imports — deferred so that `--help` works without a .env file.
     from datetime import datetime
-    from typing import Optional
 
     from models.schemas import ContactResult, EmailResolutionResult, LookalikeResult, SendResult
     from models.settings import settings
@@ -26,14 +38,27 @@ def main(
     from utils.banner import print_banner
     from utils.console import console
     from utils.logger import setup_logging
+    from utils.preflight import check_connectivity, validate_domain
     from utils.retry import (
         BrevoAuthError, BrevoLimitError, BrevoSenderError,
+        ConnectivityError,
         EazyreachAuthError, EazyreachCreditsError,
         OceanAuthError, ProspeoAuthError, ProspeoCreditsError,
     )
     from utils.summary import print_final_summary
 
     setup_logging(verbose)
+
+    # Validate and normalize domain before using it anywhere
+    domain = validate_domain(domain)
+
+    # Validate tone
+    if tone not in TONE_TEMPLATES:
+        raise typer.BadParameter(
+            f"Invalid tone '{tone}'. Valid options: {', '.join(TONE_TEMPLATES)}"
+        )
+    template_path = TONE_TEMPLATES[tone]
+
     run_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     print_banner(domain, run_id)
 
@@ -46,8 +71,11 @@ def main(
     aborted = False
 
     try:
+        # ── Pre-flight ────────────────────────────────────────────────────────
+        check_connectivity()
+
         # ── Stage 1 ───────────────────────────────────────────────────────────
-        lookalike_result = run_stage1(domain)
+        lookalike_result = run_stage1(domain, min_size=min_size, max_size=max_size)
 
         if lookalike_result.companies_found == 0:
             artifact = save_run_artifact(run_id=run_id, seed_domain=domain,
@@ -61,6 +89,37 @@ def main(
         # ── Stage 3 ───────────────────────────────────────────────────────────
         email_result = run_stage3(contact_result)
 
+        # ── Dry-run exit ──────────────────────────────────────────────────────
+        if dry_run:
+            from utils.checkpoint import render_checkpoint
+            render_checkpoint(
+                seed_domain=domain,
+                run_id=run_id,
+                companies_found=lookalike_result.companies_found,
+                contacts_found=contact_result.contacts_found,
+                result=email_result,
+                sender_email=settings.sender_email,
+                dry_run=True,
+            )
+            console.print()
+            console.print(
+                "[yellow]DRY RUN MODE[/yellow] [dim]— Stage 4 skipped. No emails were sent.[/dim]"
+            )
+            artifact = save_run_artifact(
+                run_id=run_id, seed_domain=domain,
+                lookalike_result=lookalike_result, contact_result=contact_result,
+                email_result=email_result, send_results=[],
+                user_confirmed_send=False,
+            )
+            if export_csv:
+                from utils.csv_export import export_contacts_csv
+                csv_path = export_contacts_csv(artifact, run_id)
+                console.print(
+                    f"  [dim]CSV export[/dim] [dim cyan]→[/dim cyan] [cyan]{csv_path}[/cyan]"
+                )
+            print_final_summary(artifact)
+            raise typer.Exit(0)
+
         # ── Stage 4 + checkpoint ──────────────────────────────────────────────
         send_results, user_confirmed = run_stage4(
             email_result=email_result,
@@ -69,8 +128,17 @@ def main(
             companies_found=lookalike_result.companies_found,
             contacts_found=contact_result.contacts_found,
             sender_email=settings.sender_email,
+            template_path=template_path,
         )
         aborted = not user_confirmed
+
+    except ConnectivityError as e:
+        _fail(
+            "No internet connectivity.",
+            str(e),
+            run_id, domain, lookalike_result, contact_result, email_result,
+            send_results, user_confirmed,
+        )
 
     except OceanAuthError:
         _fail(
@@ -145,6 +213,15 @@ def main(
         email_result=email_result, send_results=send_results,
         user_confirmed_send=user_confirmed, run_aborted_at_checkpoint=aborted,
     )
+
+    if export_csv:
+        from utils.csv_export import export_contacts_csv
+        csv_path = export_contacts_csv(artifact, run_id)
+        from utils.console import console as _console
+        _console.print(
+            f"  [dim]CSV export[/dim] [dim cyan]→[/dim cyan] [cyan]{csv_path}[/cyan]"
+        )
+
     print_final_summary(artifact)
 
 

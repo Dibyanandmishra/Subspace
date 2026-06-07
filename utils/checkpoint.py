@@ -18,10 +18,12 @@ def render_checkpoint(
     contacts_found: int,
     result: EmailResolutionResult,
     sender_email: str,
+    dry_run: bool = False,
 ) -> Optional[str]:
     """
     Render the safety checkpoint panel.
     Returns "y" if operator confirms send, None if they abort or verified_count == 0.
+    When dry_run=True, renders the panel but skips the y/N prompt and returns None.
     """
     verified = result.verified_contacts
     unresolved_count = result.emails_unresolved
@@ -110,6 +112,9 @@ def render_checkpoint(
         )
     )
     console.print()
+
+    if dry_run:
+        return None
 
     response = console.input("  [bold white]Proceed? [y/N]:[/bold white]  ").strip().lower()
     return "y" if response == "y" else None

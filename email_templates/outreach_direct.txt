@@ -1,0 +1,9 @@
+Subject: {company} — 15 min?
+
+Hi {first_name},
+
+We automate cold-outreach for {title}s: one domain in, verified emails and personalized sends out. No SDR required.
+
+Worth 15 minutes of {name}'s time? I can show you a live run against {company}.
+
+{sender_name}

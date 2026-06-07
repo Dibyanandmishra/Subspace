@@ -18,16 +18,21 @@ from utils.retry import BrevoAuthError, BrevoLimitError, BrevoSenderError, make_
 _BASE_URL = "https://api.brevo.com/v3"
 _ENDPOINT = "/smtp/email"
 
-_TEMPLATE_PATH = Path("email_templates/outreach.txt")
+_DEFAULT_TEMPLATE_PATH = Path("email_templates/outreach_friendly.txt")
 
 
-def render_email_body(contact: VerifiedContact, sender_name: str) -> tuple[str, str]:
+def render_email_body(
+    contact: VerifiedContact,
+    sender_name: str,
+    template_path: Path | str | None = None,
+) -> tuple[str, str]:
     """
     Read the template file and inject contact variables.
     Returns (subject, body_text).
     Raises ValueError if the template references an unknown {variable}.
     """
-    raw = _TEMPLATE_PATH.read_text(encoding="utf-8")
+    path = Path(template_path) if template_path else _DEFAULT_TEMPLATE_PATH
+    raw = path.read_text(encoding="utf-8")
     first_name = contact.name.split()[0] if contact.name else contact.name
 
     try:
@@ -47,7 +52,11 @@ def render_email_body(contact: VerifiedContact, sender_name: str) -> tuple[str, 
     return subject, body
 
 
-def send_email(contact: VerifiedContact, seed_domain: str) -> SendResult:
+def send_email(
+    contact: VerifiedContact,
+    seed_domain: str,
+    template_path: str | None = None,
+) -> SendResult:
     """
     Send one personalized email to contact via Brevo.
     Returns SendResult(status='sent') on success or SendResult(status='failed') on
@@ -59,7 +68,7 @@ def send_email(contact: VerifiedContact, seed_domain: str) -> SendResult:
         backoff_factor=settings.retry_backoff_factor,
     )
 
-    subject, body = render_email_body(contact, settings.sender_name)
+    subject, body = render_email_body(contact, settings.sender_name, template_path=template_path)
 
     request = BrevoEmailRequest(
         sender=BrevoSender(name=settings.sender_name, email=settings.sender_email),

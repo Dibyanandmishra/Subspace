@@ -24,9 +24,17 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
+    exclude_domains: str = ""
+
     @property
     def seniority_list(self) -> list[str]:
         return [s.strip() for s in self.prospeo_seniority_filter.split(",")]
+
+    @property
+    def exclude_domains_list(self) -> list[str]:
+        if not self.exclude_domains.strip():
+            return []
+        return [d.strip().lower() for d in self.exclude_domains.split(",") if d.strip()]
 
 
 # Singleton — import this everywhere, never instantiate Settings() again

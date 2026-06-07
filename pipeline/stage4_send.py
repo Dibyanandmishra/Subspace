@@ -14,6 +14,7 @@ def run_stage4(
     companies_found: int,
     contacts_found: int,
     sender_email: str,
+    template_path: str = "email_templates/outreach_friendly.txt",
 ) -> tuple[list[SendResult], bool]:
     """
     Show checkpoint, get confirmation, then send emails via Brevo.
@@ -41,7 +42,7 @@ def run_stage4(
         label = f"[bold magenta]{contact.name:<20}[/bold magenta] [dim]{contact.email}[/dim]"
 
         try:
-            result = send_email(contact, seed_domain)
+            result = send_email(contact, seed_domain, template_path=template_path)
         except (BrevoAuthError, BrevoSenderError, BrevoLimitError):
             print_stage_fail(4, "Brevo error — stopping send")
             raise

@@ -13,9 +13,11 @@ def run_stage2(lookalike_result: LookalikeResult) -> ContactResult:
     """
     print_stage_start(2)
 
-    all_contacts: list[Contact] = []
+    all_contacts: list[Contact] = []  # Only contacts with LinkedIn URL (usable in Stage 3)
     skipped_domains: list[str] = []
     seen_linkedin_urls: set[str] = set()
+    total_found = 0
+    total_without_linkedin = 0
 
     for company in lookalike_result.companies:
         domain = company.domain
@@ -35,14 +37,22 @@ def run_stage2(lookalike_result: LookalikeResult) -> ContactResult:
         domain_without = 0
 
         for contact in raw_contacts:
+            total_found += 1
             if contact.linkedin_url:
                 if contact.linkedin_url in seen_linkedin_urls:
+                    log_sub(
+                        f"[bold magenta]{contact.name}[/bold magenta] "
+                        f"([cyan]{domain}[/cyan]) "
+                        f"[dim red]◌[/dim red]  [dim]duplicate LinkedIn — skipped[/dim]"
+                    )
+                    total_found -= 1  # Duplicate doesn't count as a new find
                     continue
                 seen_linkedin_urls.add(contact.linkedin_url)
                 all_contacts.append(contact)
                 domain_with += 1
             else:
-                all_contacts.append(contact)
+                # No LinkedIn URL — counted but cannot proceed to Stage 3
+                total_without_linkedin += 1
                 domain_without += 1
 
         total = domain_with + domain_without
@@ -56,19 +66,16 @@ def run_stage2(lookalike_result: LookalikeResult) -> ContactResult:
             f"[cyan]{domain:<30}[/cyan] [bold green]✓[/bold green]  " + " · ".join(parts)
         )
 
-    contacts_with_linkedin = sum(1 for c in all_contacts if c.linkedin_url)
-    contacts_without_linkedin = len(all_contacts) - contacts_with_linkedin
-
     result = ContactResult(
         companies_searched=len(lookalike_result.companies),
-        contacts_found=len(all_contacts),
-        contacts_with_linkedin=contacts_with_linkedin,
-        contacts_without_linkedin=contacts_without_linkedin,
+        contacts_found=total_found,
+        contacts_with_linkedin=len(all_contacts),
+        contacts_without_linkedin=total_without_linkedin,
         contacts=all_contacts,
         skipped_domains=skipped_domains,
     )
 
-    summary = f"{len(all_contacts)} contacts"
+    summary = f"{len(all_contacts)} contacts with LinkedIn"
     if skipped_domains:
         summary += f" · {len(skipped_domains)} domain{'s' if len(skipped_domains) != 1 else ''} skipped"
         print_stage_warn(2, summary)
