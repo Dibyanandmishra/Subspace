@@ -113,7 +113,7 @@ def main(
             )
             if export_csv:
                 from utils.csv_export import export_contacts_csv
-                csv_path = export_contacts_csv(artifact, run_id)
+                csv_path = export_contacts_csv(artifact, run_id, dry_run=True)
                 console.print(
                     f"  [dim]CSV export[/dim] [dim cyan]→[/dim cyan] [cyan]{csv_path}[/cyan]"
                 )

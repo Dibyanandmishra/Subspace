@@ -2,6 +2,7 @@
 
 import os
 
+import pytest
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_none
 
 
@@ -25,9 +26,6 @@ def _make_fast_retry(max_attempts=3, backoff_factor=0.0):
         retry=retry_if_exception(is_retryable_error),
         reraise=True,
     )
-
-
-import pytest
 
 
 @pytest.fixture(autouse=True)

@@ -43,7 +43,7 @@ def render_checkpoint(
         )
     else:
         lines.append(
-            f"  [bold red]✗[/bold red]  [bold]Emails verified[/bold]       [bold red]0[/bold red]  — all contacts were unresolvable"
+            "  [bold red]✗[/bold red]  [bold]Emails verified[/bold]       [bold red]0[/bold red]  — all contacts were unresolvable"
         )
 
     if unresolved_count > 0:
